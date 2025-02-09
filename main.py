@@ -60,6 +60,11 @@ async def startup_event():
 async def shutdown_event():
     await client.disconnect()
 
+@app.get("/")
+async def read_root():
+    return {"message": "Welcome to the Telegram Account Checker API"}
+
+
 @app.post("/check-account")
 async def check_account(phone: PhoneNumber):
     try:
