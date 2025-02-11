@@ -177,4 +177,5 @@ async def process_phone_numbers(file: UploadFile):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    PORT = int(os.getenv("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
