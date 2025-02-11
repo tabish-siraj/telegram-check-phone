@@ -3,8 +3,9 @@
 <html>
   <head>
     <title>Telegram Account Checker</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}" />
+    <link href="{{ url_for('static', path='/style.css') }}" rel="stylesheet" />
   </head>
+
   <body>
     <div class="container">
       <h1>Telegram Account Checker</h1>
@@ -14,24 +15,24 @@
       {% endif %} {% if not is_authorized %}
       <div class="login-form">
         <h2>Login to Telegram</h2>
-        <form action="/login" method="POST">
-          <input
-            type="text"
-            name="phone"
-            placeholder="Phone number (with country code)"
-            required
-          />
-          <button type="submit">Login</button>
+        <form action="/verify" method="POST">
+          <input type="text" name="code" placeholder="Enter code" required />
+          <button type="submit">Verify</button>
         </form>
       </div>
       {% else %}
       <div class="check-form">
         <h2>Check Account</h2>
-        <form action="/check-account" method="POST">
+        <form
+          action="/check-account"
+          method="POST"
+          enctype="multipart/form-data"
+        >
           <input
-            type="text"
-            name="phone"
+            type="file"
+            name="file"
             placeholder="Phone number to check"
+            accept=".csv"
             required
           />
           <button type="submit">Check Account</button>
@@ -39,88 +40,20 @@
       </div>
       {% endif %}
     </div>
-  </body>
-</html>
+    {% if response %}
+    <table>
+      <tr>
+        <th>Phone Number</th>
+        <th>Status</th>
+      </tr>
+      {% for resp in response %}
+      <tr>
+        <td>{{ resp.phone }}</td>
+        <td>{{ resp.exists }}</td>
+      </tr>
 
-<!-- templates/verify.html -->
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Verify Code - Telegram Account Checker</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}" />
-  </head>
-  <body>
-    <div class="container">
-      <h1>Enter Verification Code</h1>
-
-      {% if error %}
-      <div class="error">{{ error }}</div>
-      {% endif %}
-
-      <form action="/verify" method="POST">
-        <input type="hidden" name="phone" value="{{ phone }}" />
-        <input
-          type="text"
-          name="code"
-          placeholder="Enter verification code"
-          required
-        />
-        <button type="submit">Verify</button>
-      </form>
-    </div>
-  </body>
-</html>
-
-<!-- templates/2fa.html -->
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>2FA - Telegram Account Checker</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}" />
-  </head>
-  <body>
-    <div class="container">
-      <h1>Two-Factor Authentication</h1>
-
-      {% if error %}
-      <div class="error">{{ error }}</div>
-      {% endif %}
-
-      <form action="/2fa" method="POST">
-        <input type="hidden" name="phone" value="{{ phone }}" />
-        <input
-          type="password"
-          name="password"
-          placeholder="Enter your 2FA password"
-          required
-        />
-        <button type="submit">Submit</button>
-      </form>
-    </div>
-  </body>
-</html>
-
-<!-- templates/result.html -->
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Result - Telegram Account Checker</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}" />
-  </head>
-  <body>
-    <div class="container">
-      <h1>Check Result</h1>
-      <div class="result">
-        <p>Phone number: {{ phone }}</p>
-        <p>
-          Account status: {% if exists %}
-          <span class="exists">Account exists on Telegram</span>
-          {% else %}
-          <span class="not-exists">No account found for this number</span>
-          {% endif %}
-        </p>
-      </div>
-      <a href="/" class="button">Check Another Number</a>
-    </div>
+      {% endfor %}
+    </table>
+    {% endif %}
   </body>
 </html>

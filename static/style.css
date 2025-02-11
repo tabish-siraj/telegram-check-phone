@@ -92,3 +92,38 @@ button:hover {
 .button:hover {
   background-color: #006699;
 }
+
+table {
+  border-collapse: collapse;
+  margin: 0 auto;
+  width: 50%;
+  margin-top: 25px;
+}
+
+th,
+td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #03486b;
+  color: white;
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+tr:hover {
+  background-color: #ddd;
+}
+
+tr.exists td {
+  background-color: #03486b;
+}
+
+tr.not-exists td {
+  background-color: #dc3545;
+}
