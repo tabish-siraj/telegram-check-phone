@@ -174,3 +174,7 @@ async def process_phone_numbers(file: UploadFile):
     except Exception as e:
         logger.error(f"Error reading CSV file: {str(e)}")
     return numbers
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
