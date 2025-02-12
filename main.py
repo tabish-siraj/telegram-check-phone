@@ -122,19 +122,33 @@ async def check_account(request: Request, file: UploadFile = File(None)):
         try:
             # Import the contact and check the result
             logger.info(f"Importing {len(contacts)} contacts...")
-            result = await client(ImportContactsRequest(contacts))
-            phones = [user.phone for user in result.users]
-            for contact in contacts:
-                if contact.phone.strip("+") in phones:
-                    response.append({
-                        "phone": contact.phone,
-                        "exists": True
-                    })
-                else:
-                    response.append({
-                        "phone": contact.phone,
-                        "exists": False
-                    })
+            for i in range(0, len(contacts), 50):
+                result = await client(ImportContactsRequest(contacts[i:i+50]))
+                phones = [user.phone for user in result.users]
+                for contact in contacts[i:i+50]:
+                    if contact.phone.strip("+") in phones:
+                        response.append({
+                            "phone": contact.phone,
+                            "exists": True
+                        })
+                    else:
+                        response.append({
+                            "phone": contact.phone,
+                            "exists": False
+                        })
+            # result = await client(ImportContactsRequest(contacts))
+            # phones = [user.phone for user in result.users]
+            # for contact in contacts:
+            #     if contact.phone.strip("+") in phones:
+            #         response.append({
+            #             "phone": contact.phone,
+            #             "exists": True
+            #         })
+            #     else:
+            #         response.append({
+            #             "phone": contact.phone,
+            #             "exists": False
+            #         })
 
             # Delete the contact we just added
             await client(DeleteContactsRequest(id=result.users))
