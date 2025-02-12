@@ -161,11 +161,11 @@ async def check_account(request: Request, file: UploadFile = File(None)):
         except Exception as e:
             return templates.TemplateResponse(
                         "index.html",
-                        { "request": request, "is_authorized": True, "error": str(e)})
+                        {"request": request, "is_authorized": True, "error": str(e), "response": response})
     except Exception as e:
         return templates.TemplateResponse(
                         "index.html",
-                        {"request": request, "is_authorized": True, "error": str(e)})
+                        {"request": request, "is_authorized": True, "error": str(e), "response": response})
     
 
 async def process_phone_numbers(file: UploadFile):
