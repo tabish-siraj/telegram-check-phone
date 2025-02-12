@@ -98,8 +98,11 @@ app.add_middleware(
 async def read_root(request: Request):
     is_authorized = await client.is_user_authorized()
     if not is_authorized:
-        await client.send_code_request(PHONE_NUMBER)
-        return templates.TemplateResponse("index.html", {"request": request, "message": "Please check your Telegram app and enter the code", "is_authorized": is_authorized})
+        try:
+            await client.send_code_request(PHONE_NUMBER)
+            return templates.TemplateResponse("index.html", {"request": request, "message": "Please check your Telegram app and enter the code", "is_authorized": is_authorized})
+        except Exception as e:
+            return templates.TemplateResponse("index.html", {"request": request, "message": str(e), "is_authorized": is_authorized})
     return templates.TemplateResponse("index.html", {"request": request, "is_authorized": is_authorized})
 
 @app.post("/verify")
