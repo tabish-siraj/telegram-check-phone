@@ -125,10 +125,10 @@ async def check_account(request: Request, file: UploadFile = File(None)):
         try:
             # Import the contact and check the result
             logger.info(f"Importing {len(contacts)} contacts...")
-            for i in range(0, len(contacts), 50):
-                result = await client(ImportContactsRequest(contacts[i:i+50]))
+            for i in range(0, len(contacts), 10):
+                result = await client(ImportContactsRequest(contacts[i:i+10]))
                 phones = [user.phone for user in result.users]
-                for contact in contacts[i:i+50]:
+                for contact in contacts[i:i+10]:
                     if contact.phone.strip("+") in phones:
                         response.append({
                             "phone": contact.phone,
