@@ -136,20 +136,6 @@ async def check_account(request: Request, file: UploadFile = File(None)):
                             "phone": contact.phone,
                             "exists": False
                         })
-            # result = await client(ImportContactsRequest(contacts))
-            # phones = [user.phone for user in result.users]
-            # for contact in contacts:
-            #     if contact.phone.strip("+") in phones:
-            #         response.append({
-            #             "phone": contact.phone,
-            #             "exists": True
-            #         })
-            #     else:
-            #         response.append({
-            #             "phone": contact.phone,
-            #             "exists": False
-            #         })
-
             # Delete the contact we just added
             await client(DeleteContactsRequest(id=result.users))
             

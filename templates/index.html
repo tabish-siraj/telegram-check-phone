@@ -10,9 +10,7 @@
     <div class="container">
       <h1>Telegram Account Checker</h1>
 
-      {% if error %}
-      <div class="error">{{ error }}</div>
-      {% endif %} {% if not is_authorized %}
+      {% if not is_authorized %}
       <div class="login-form">
         <h2>Login to Telegram</h2>
         <form action="/verify" method="POST">
