@@ -3,7 +3,6 @@ from fastapi import FastAPI,Request, Form, UploadFile, File
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from telethon import TelegramClient
-from telethon.sessions import StringSession
 from telethon.errors import (
     TimeoutError
 )
@@ -56,12 +55,10 @@ async def lifespan(app: FastAPI):
             logger.info("Client is already connected")
             yield
             return
-        client = TelegramClient(StringSession(), API_ID, API_HASH, connection_retries=5, retry_delay=1, timeout=20, system_version="4.16.30-vxCUSTOM")
+        client = TelegramClient("session_name", API_ID, API_HASH, connection_retries=5, retry_delay=1, timeout=20, system_version="4.16.30-vxCUSTOM")
         
         logger.info("Attempting to connect to Telegram...")
-        
         await client.connect()
-
         logger.info("Connected to Telegram successfully")
 
         # Test the connection
