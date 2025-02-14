@@ -31,7 +31,7 @@ logging.getLogger('telethon.client.telegrambaseclient').setLevel(logging.WARNING
 logger = logging.getLogger(__name__)
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 # Telegram API credentials
 API_ID = os.getenv("TELEGRAM_API_ID")
@@ -41,7 +41,6 @@ PHONE_NUMBER = os.getenv("TELEGRAM_PHONE")
 # Verify credentials are loaded
 if not all([API_ID, API_HASH, PHONE_NUMBER]):
     raise ValueError("Missing required environment variables. Please check your .env file.")
-
 
 client: TelegramClient = None
 
@@ -96,7 +95,8 @@ async def read_root(request: Request):
     is_authorized = await client.is_user_authorized()
     if not is_authorized:
         try:
-            await client.send_code_request(PHONE_NUMBER)
+            code = await client.send_code_request(PHONE_NUMBER)
+            print(code)
             return templates.TemplateResponse("index.html", {"request": request, "message": "Please check your Telegram app and enter the code", "is_authorized": is_authorized})
         except Exception as e:
             logger.error(f"Error sending code: {str(e)}")
