@@ -6,7 +6,7 @@ from telethon import TelegramClient
 from telethon.errors import (
     TimeoutError
 )
-from telethon.tl.functions.contacts import ImportContactsRequest, DeleteContactsRequest
+from telethon.tl.functions.contacts import SearchRequest, ImportContactsRequest, DeleteContactsRequest, GetContactsRequest, GetContactIDsRequest, DeleteByPhonesRequest
 from telethon.tl.types import InputPhoneContact
 import os
 from dotenv import load_dotenv
@@ -126,22 +126,38 @@ async def check_account(request: Request, file: UploadFile = File(None)):
         try:
             # Import the contact and check the result
             logger.info(f"Importing {len(contacts)} contacts...")
-            for i in range(0, len(contacts), 10):
-                result = await client(ImportContactsRequest(contacts[i:i+10]))
-                phones = [user.phone for user in result.users]
-                for contact in contacts[i:i+10]:
-                    if contact.phone.strip("+") in phones:
-                        response.append({
-                            "phone": contact.phone,
-                            "exists": True
-                        })
-                    else:
-                        response.append({
-                            "phone": contact.phone,
-                            "exists": False
-                        })
+            for contact in contacts:
+                print(contact)
+                search_result = await client(SearchRequest(
+                    q=contact,
+                    limit=5
+                ))
+                print(search_result)
+                for user in search_result.users:
+                    print(user)
+
+            # for i in range(0, len(contacts), 10):
+            # result = await client(ImportContactsRequest(contacts[i:i+10]))
+            # print(contacts[0])
+            # result = await client(ImportContactsRequest([contacts[0]]))
+            # print("result",result)
+
+                # phones = [user.phone for user in result.users]
+                # for user in result.users:
+                #     print("user",user)
+                #     print("phone",user.phone)
+                # for contact in contacts[i:i+10]:
+                #     if contact.phone.strip("+") in phones:
+                #         response.append({
+                #             "phone": contact.phone,
+                #             "exists": True
+                #         })
+                #     else:
+                #         response.append({
+                #             "phone": contact.phone,
+                #             "exists": False
+                #         })
             # Delete the contact we just added
-            await client(DeleteContactsRequest(id=result.users))
             
             # Return the existence check result
             return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response})
@@ -167,12 +183,13 @@ async def process_phone_numbers(file: UploadFile):
         next(reader)
         for row in reader:
             if not row: continue
-            numbers.append(InputPhoneContact(
-                client_id=counter,
-                phone=row[0],
-                first_name="Check",
-                last_name="User"
-            ))
+            # numbers.append(InputPhoneContact(
+            #     client_id=counter,
+            #     phone=row[0],
+            #     first_name=f"Check{counter}",
+            #     last_name=f"User{counter}"
+            # ))
+            numbers.append(row[0])
             counter += 1
         
         file.file.close()
@@ -184,5 +201,5 @@ async def process_phone_numbers(file: UploadFile):
 if __name__ == "__main__":
     import uvicorn
     PORT = int(os.getenv("PORT", 10000))
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=True)
 
