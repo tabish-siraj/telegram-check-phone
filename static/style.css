@@ -27,13 +27,13 @@ h2 {
   margin-bottom: 20px;
 }
 
-.error {
+/* .error {
   background-color: #ffe6e6;
   color: #cc0000;
   padding: 10px;
   border-radius: 4px;
   margin-bottom: 20px;
-}
+} */
 
 form {
   display: flex;
