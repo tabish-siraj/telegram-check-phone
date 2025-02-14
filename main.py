@@ -99,7 +99,8 @@ async def read_root(request: Request):
             await client.send_code_request(PHONE_NUMBER)
             return templates.TemplateResponse("index.html", {"request": request, "message": "Please check your Telegram app and enter the code", "is_authorized": is_authorized})
         except Exception as e:
-            return templates.TemplateResponse("index.html", {"request": request, "message": str(e), "is_authorized": is_authorized})
+            logger.error(f"Error sending code: {str(e)}")
+            return templates.TemplateResponse("index.html", {"request": request, "error": str(e), "is_authorized": is_authorized})
     return templates.TemplateResponse("index.html", {"request": request, "is_authorized": is_authorized})
 
 @app.post("/verify")
@@ -108,9 +109,12 @@ async def verify(request: Request, code: str = Form(...)):
         await client.sign_in(PHONE_NUMBER, code)
         is_authorized = await client.is_user_authorized()
         return templates.TemplateResponse("index.html", {"request": request, "is_authorized": is_authorized})
-    except TimeoutError:
+    except TimeoutError as e:
+        logger.error(f"TimeoutError: {str(e)}")
         return templates.TemplateResponse("index.html", {"request": request, "message": "TimeoutError: Please try again", "is_authorized": False})
-
+    except Exception as e:
+        logger.error(f"Error verifying code: {str(e)}")
+        return templates.TemplateResponse("index.html", {"request": request, "error": str(e), "is_authorized": False})
 @app.post("/check-account")
 async def check_account(request: Request, file: UploadFile = File(None)):
     response = []
@@ -142,10 +146,12 @@ async def check_account(request: Request, file: UploadFile = File(None)):
             # Return the existence check result
             return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response})
         except Exception as e:
+            logger.error(f"Error checking account: {str(e)}")
             return templates.TemplateResponse(
                         "index.html",
                         {"request": request, "is_authorized": True, "error": str(e), "response": response})
     except Exception as e:
+        logger.error(f"Error processing file: {str(e)}")
         return templates.TemplateResponse(
                         "index.html",
                         {"request": request, "is_authorized": True, "error": str(e), "response": response})
