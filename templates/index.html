@@ -1,15 +1,61 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
 <html>
   <head>
     <title>Telegram Account Checker</title>
     <link href="{{ url_for('static', path='/style.css') }}" rel="stylesheet" />
-  </head>
+    <script>
+      let waitTimer;
+      
+      function disableButton(seconds) {
+        const button = document.getElementById('checkButton');
+        const buttonText = button.innerHTML;
+        
+        button.disabled = true;
+        
+        if (seconds) {
+          let remainingTime = seconds;
+          button.innerHTML = `Please wait (${remainingTime}s)`;
+          
+          waitTimer = setInterval(() => {
+            remainingTime--;
+            button.innerHTML = `Please wait (${remainingTime}s)`;
+            
+            if (remainingTime <= 0) {
+              clearInterval(waitTimer);
+              button.disabled = false;
+              button.innerHTML = buttonText;
+            }
+          }, 1000);
+        } else {
+          button.innerHTML = 'Processing...';
+        }
+      }
+      
+      function enableButton() {
+        const button = document.getElementById('checkButton');
+        if (waitTimer) {
+          clearInterval(waitTimer);
+        }
+        button.disabled = false;
+        button.innerHTML = 'Check Account';
+      }
 
+      // Handle the form submission
+      document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('checkForm');
+        if (form) {
+          form.addEventListener('submit', () => {
+            disableButton();
+          });
+        }
+      });
+    </script>
+  </head>
+  
   <body>
     <div class="container">
       <h1>Telegram Account Checker</h1>
-
+      
       {% if not is_authorized %}
       <div class="login-form">
         <h2>Login to Telegram</h2>
@@ -22,6 +68,7 @@
       <div class="check-form">
         <h2>Check Account</h2>
         <form
+          id="checkForm"
           action="/check-account"
           method="POST"
           enctype="multipart/form-data"
@@ -33,11 +80,12 @@
             accept=".csv"
             required
           />
-          <button type="submit">Check Account</button>
+          <button id="checkButton" type="submit">Check Account</button>
         </form>
       </div>
       {% endif %}
     </div>
+    
     {% if response %}
     <table>
       <tr>
@@ -49,9 +97,31 @@
         <td>{{ resp.phone }}</td>
         <td>{{ resp.exists }}</td>
       </tr>
-
       {% endfor %}
     </table>
+    {% endif %}
+
+    {% if error %}
+    <div class="error">
+      {{ error }}
+      <script>
+        // Extract wait time if the error contains it
+        const errorText = "{{ error }}";
+        const waitMatch = errorText.match(/A wait of (\d+) seconds is required/);
+        if (waitMatch && waitMatch[1]) {
+          const waitSeconds = parseInt(waitMatch[1]);
+          disableButton(waitSeconds);
+        } else {
+          // For other errors, enable the button after 3 seconds
+          setTimeout(enableButton, 3000);
+        }
+      </script>
+    </div>
+    {% else %}
+    <script>
+      // Enable button when the page loads (no error)
+      enableButton();
+    </script>
     {% endif %}
   </body>
 </html>
