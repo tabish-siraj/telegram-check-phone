@@ -126,20 +126,33 @@ async def check_account(request: Request, file: UploadFile = File(None)):
         logger.info(f"Importing {len(contacts)} contacts...")
 
         for i in range(0, len(contacts), 9):
+            batch =  contacts[i:i+9]
             await asyncio.sleep(1)
             try:
-                result = await client(ImportContactsRequest(contacts[i:i+9]))
+                result = await client(ImportContactsRequest(batch))
                 phones = [user.phone for user in result.users]
-                for contact in contacts[i:i+9]:
+                imported = [imports.client_id for imports in result.imported]
+                popular_invites = [pop.client_id for pop in result.popular_invites if pop.importers > 5]
+
+                for contact in batch:
                     if contact.phone.strip("+") in phones:
                         response.append({
                             "phone": contact.phone,
-                            "exists": True
+                            "exists": True,
+                            "comment": "Found"
+                        })
+                    elif contact.client_id not in imported and contact.client_id in popular_invites:
+
+                        response.append({
+                            "phone": contact.phone,
+                            "exists": False,
+                            "comment": "Not found or has privacy ON."
                         })
                     else:
                         response.append({
                             "phone": contact.phone,
-                            "exists": False
+                            "exists": False,
+                            "comment": "Not found"
                         })
                 # await client(DeleteContactsRequest(id=result.users))
                 await client(DeleteContactsRequest([user.id for user in result.users]))

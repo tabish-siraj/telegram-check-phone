@@ -92,12 +92,14 @@
         <th>Sr. No</th>
         <th>Phone Number</th>
         <th>Status</th>
+        <th>Comment</th>
       </tr>
       {% for resp in response %}
       <tr>
         <td>{{ loop.index }}</td>
         <td>{{ resp.phone }}</td>
         <td>{{ resp.exists }}</td>
+        <td>{{ resp.comment }}</td>
       </tr>
       {% endfor %}
     </table>
