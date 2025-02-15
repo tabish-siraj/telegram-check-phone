@@ -1,11 +1,10 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI,Request, Form, UploadFile, File
+from fastapi import FastAPI,Request, Form, UploadFile, File, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from telethon import TelegramClient
-from telethon.errors import (
-    TimeoutError
-)
+from telethon.errors import TimeoutError, FloodWaitError, PhoneNumberInvalidError
+import asyncio
 from telethon.tl.functions.contacts import SearchRequest, ImportContactsRequest, DeleteContactsRequest, GetContactsRequest, GetContactIDsRequest, DeleteByPhonesRequest
 from telethon.tl.types import InputPhoneContact
 import os
@@ -50,12 +49,11 @@ async def lifespan(app: FastAPI):
     
     global client
     try:
+        client = TelegramClient("session_name", API_ID, API_HASH, connection_retries=5, retry_delay=1, timeout=20, system_version="4.16.30-vxCUSTOM")
         if client and client.is_connected():
             logger.info("Client is already connected")
             yield
-            return
-        client = TelegramClient("session_name", API_ID, API_HASH, connection_retries=5, retry_delay=1, timeout=20, system_version="4.16.30-vxCUSTOM")
-        
+            return        
         logger.info("Attempting to connect to Telegram...")
         await client.connect()
         logger.info("Connected to Telegram successfully")
@@ -75,7 +73,7 @@ async def lifespan(app: FastAPI):
         # Shutdown
         if client:
             await client.disconnect()
-            print("Disconnected from Telegram")
+            logger.info("Disconnected from Telegram")
 
 
 app = FastAPI(title="Telegram Account Checker", lifespan=lifespan)
@@ -95,8 +93,7 @@ async def read_root(request: Request):
     is_authorized = await client.is_user_authorized()
     if not is_authorized:
         try:
-            code = await client.send_code_request(PHONE_NUMBER)
-            print(code)
+            await client.send_code_request(PHONE_NUMBER)
             return templates.TemplateResponse("index.html", {"request": request, "message": "Please check your Telegram app and enter the code", "is_authorized": is_authorized})
         except Exception as e:
             logger.error(f"Error sending code: {str(e)}")
@@ -109,69 +106,55 @@ async def verify(request: Request, code: str = Form(...)):
         await client.sign_in(PHONE_NUMBER, code)
         is_authorized = await client.is_user_authorized()
         return templates.TemplateResponse("index.html", {"request": request, "is_authorized": is_authorized})
+    
     except TimeoutError as e:
         logger.error(f"TimeoutError: {str(e)}")
         return templates.TemplateResponse("index.html", {"request": request, "message": "TimeoutError: Please try again", "is_authorized": False})
+    
     except Exception as e:
         logger.error(f"Error verifying code: {str(e)}")
         return templates.TemplateResponse("index.html", {"request": request, "error": str(e), "is_authorized": False})
+
 @app.post("/check-account")
 async def check_account(request: Request, file: UploadFile = File(None)):
-    response = []
+    if not file:
+        return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "error": "No file uploaded"})
     try:
-        if not file:
-            return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "error": "No file uploaded"})
 
         contacts = await process_phone_numbers(file)        
-        try:
-            # Import the contact and check the result
-            logger.info(f"Importing {len(contacts)} contacts...")
-            for contact in contacts:
-                print(contact)
-                search_result = await client(SearchRequest(
-                    q=contact,
-                    limit=5
-                ))
-                print(search_result)
-                for user in search_result.users:
-                    print(user)
+        response = []
+        logger.info(f"Importing {len(contacts)} contacts...")
 
-            # for i in range(0, len(contacts), 10):
-            # result = await client(ImportContactsRequest(contacts[i:i+10]))
-            # print(contacts[0])
-            # result = await client(ImportContactsRequest([contacts[0]]))
-            # print("result",result)
+        for i in range(0, len(contacts), 9):
+            await asyncio.sleep(1)
+            try:
+                result = await client(ImportContactsRequest(contacts[i:i+9]))
+                phones = [user.phone for user in result.users]
+                for contact in contacts[i:i+9]:
+                    if contact.phone.strip("+") in phones:
+                        response.append({
+                            "phone": contact.phone,
+                            "exists": True
+                        })
+                    else:
+                        response.append({
+                            "phone": contact.phone,
+                            "exists": False
+                        })
+                # await client(DeleteContactsRequest(id=result.users))
+                await client(DeleteContactsRequest([user.id for user in result.users]))
 
-                # phones = [user.phone for user in result.users]
-                # for user in result.users:
-                #     print("user",user)
-                #     print("phone",user.phone)
-                # for contact in contacts[i:i+10]:
-                #     if contact.phone.strip("+") in phones:
-                #         response.append({
-                #             "phone": contact.phone,
-                #             "exists": True
-                #         })
-                #     else:
-                #         response.append({
-                #             "phone": contact.phone,
-                #             "exists": False
-                #         })
-            # Delete the contact we just added
-            
+            except Exception as e:
+                logger.error(f"Error: {str(e)}")
+                return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response, "error": str(e)})
+                
             # Return the existence check result
-            return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response})
-        except Exception as e:
-            logger.error(f"Error checking account: {str(e)}")
-            return templates.TemplateResponse(
-                        "index.html",
-                        {"request": request, "is_authorized": True, "error": str(e), "response": response})
+        return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response})
     except Exception as e:
         logger.error(f"Error processing file: {str(e)}")
         return templates.TemplateResponse(
                         "index.html",
                         {"request": request, "is_authorized": True, "error": str(e), "response": response})
-    
 
 async def process_phone_numbers(file: UploadFile):
     numbers = []
@@ -179,19 +162,20 @@ async def process_phone_numbers(file: UploadFile):
         file_bytes = file.file.read()
         buffer = StringIO(file_bytes.decode('utf-8'))
         reader = csv.reader(buffer)
-        counter = 0
         next(reader)
+        counter = 1
         for row in reader:
-            if not row: continue
-            # numbers.append(InputPhoneContact(
-            #     client_id=counter,
-            #     phone=row[0],
-            #     first_name=f"Check{counter}",
-            #     last_name=f"User{counter}"
-            # ))
-            numbers.append(row[0])
-            counter += 1
-        
+            if row and row[0].strip():
+                numbers.append(InputPhoneContact(
+                    client_id=counter,
+                    phone=row[0].strip(),
+                    first_name=f"Check{counter}",
+                    last_name=f"User{counter}"
+                ))
+                counter += 1
+                if counter > 30:
+                    break
+                # numbers.append(str(row[0]).strip())
         file.file.close()
         buffer.close()
     except Exception as e:

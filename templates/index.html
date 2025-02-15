@@ -89,11 +89,13 @@
     {% if response %}
     <table>
       <tr>
+        <th>Sr. No</th>
         <th>Phone Number</th>
         <th>Status</th>
       </tr>
       {% for resp in response %}
       <tr>
+        <td>{{ loop.index }}</td>
         <td>{{ resp.phone }}</td>
         <td>{{ resp.exists }}</td>
       </tr>
