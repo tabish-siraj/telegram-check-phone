@@ -115,6 +115,38 @@ async def verify(request: Request, code: str = Form(...)):
         logger.error(f"Error verifying code: {str(e)}")
         return templates.TemplateResponse("index.html", {"request": request, "error": str(e), "is_authorized": False})
 
+@app.post("/check-single")
+async def check_account(request: Request, phone: str = Form(...)):
+    response = []
+    try:
+        contact = InputPhoneContact(
+            client_id=1,
+            phone=phone.strip(),
+            first_name="Check",
+            last_name="User"
+        )
+        result = await client(ImportContactsRequest([contact]))
+
+        exists = bool(result.users)
+        if exists:
+            response.append({
+                "phone": phone,
+                "status": True,
+                "comment": "Found"
+            })
+            await client(DeleteContactsRequest(id=result.users))
+        else:
+            response.append({
+                "phone": phone,
+                "status": False,
+                "comment": "No response, the phone number is not on Telegram or has blocked contact adding"
+            })
+
+        return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response})
+    except Exception as e:
+        logger.error(f"Error: {str(e)}")
+        return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response, "error": str(e)})
+
 @app.post("/check-account")
 async def check_account(request: Request, file: UploadFile = File(None)):
     if not file:
@@ -125,14 +157,12 @@ async def check_account(request: Request, file: UploadFile = File(None)):
         response = []
         logger.info(f"Importing {len(contacts)} contacts...")
 
-        for i in range(0, len(contacts), 9):
-            batch =  contacts[i:i+9]
+        for i in range(0, len(contacts), 5):
+            batch =  contacts[i:i+5]
             await asyncio.sleep(1)
             try:
                 result = await client(ImportContactsRequest(batch))
                 phones = [user.phone for user in result.users]
-                imported = [imports.client_id for imports in result.imported]
-                popular_invites = [pop.client_id for pop in result.popular_invites if pop.importers > 5]
 
                 for contact in batch:
                     if contact.phone.strip("+") in phones:
@@ -141,18 +171,18 @@ async def check_account(request: Request, file: UploadFile = File(None)):
                             "exists": True,
                             "comment": "Found"
                         })
-                    elif contact.client_id not in imported and contact.client_id in popular_invites:
+                    # elif contact.client_id not in imported and contact.client_id in popular_invites:
 
-                        response.append({
-                            "phone": contact.phone,
-                            "exists": False,
-                            "comment": "Not found or has privacy ON."
-                        })
+                    #     response.append({
+                    #         "phone": contact.phone,
+                    #         "exists": False,
+                    #         "comment": "Not found or has privacy ON."
+                    #     })
                     else:
                         response.append({
                             "phone": contact.phone,
                             "exists": False,
-                            "comment": "Not found"
+                            "comment": "No response, the phone number is not on Telegram or has blocked contact adding"
                         })
                 # await client(DeleteContactsRequest(id=result.users))
                 await client(DeleteContactsRequest([user.id for user in result.users]))
@@ -186,7 +216,7 @@ async def process_phone_numbers(file: UploadFile):
                     last_name=f"User{counter}"
                 ))
                 counter += 1
-                if counter > 30:
+                if counter > 20:
                     break
                 # numbers.append(str(row[0]).strip())
         file.file.close()

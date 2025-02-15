@@ -54,7 +54,7 @@
   
   <body>
     <div class="container">
-      <h1>Telegram Account Checker</h1>
+      <h1><a href="/">Telegram Account Checker</a></h1>
       
       {% if not is_authorized %}
       <div class="login-form">
@@ -73,6 +73,7 @@
           method="POST"
           enctype="multipart/form-data"
         >
+          <label for="file">Upload a CSV file with phone numbers</label>
           <input
             type="file"
             name="file"

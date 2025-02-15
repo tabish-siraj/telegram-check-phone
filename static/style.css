@@ -27,6 +27,11 @@ h2 {
   margin-bottom: 20px;
 }
 
+a{
+  text-decoration: none;
+  color: #0088cc;
+}
+
 /* .error {
   background-color: #ffe6e6;
   color: #cc0000;
