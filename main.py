@@ -182,7 +182,7 @@ async def check_account(request: Request, file: UploadFile = File(None)):
                         response.append({
                             "phone": contact.phone,
                             "exists": False,
-                            "comment": "No response, the phone number is not on Telegram or has blocked contact adding"
+                            "comment": "error: No response, the phone number is not on Telegram or has blocked contact's adding."
                         })
                 # await client(DeleteContactsRequest(id=result.users))
                 await client(DeleteContactsRequest([user.id for user in result.users]))
