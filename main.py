@@ -7,10 +7,10 @@ from telethon.errors import TimeoutError, FloodWaitError, PhoneNumberInvalidErro
 import asyncio
 from telethon.tl.functions.contacts import SearchRequest, ImportContactsRequest, DeleteContactsRequest, GetContactsRequest, GetContactIDsRequest, DeleteByPhonesRequest
 from telethon.tl.types import InputPhoneContact
+from telethon.sessions import StringSession
 import os
 from dotenv import load_dotenv
 import csv
-import json
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 from io import StringIO
@@ -161,9 +161,11 @@ async def check_account(request: Request, file: UploadFile = File(None)):
         response = []
         logger.info(f"Importing {len(contacts)} contacts...")
         result_logs = []
-
-        for i in range(0, len(contacts), 5):
-            batch =  contacts[i:i+5]
+        batch_no = 1
+        for i in range(0, len(contacts), 10):
+            batch =  contacts[i:i+10]
+            print("batch_no:", batch_no, "batch_len:", len(batch))
+            batch_no += 1
             await asyncio.sleep(20)
             try:
                 result = await client(ImportContactsRequest(batch))
@@ -192,8 +194,8 @@ async def check_account(request: Request, file: UploadFile = File(None)):
                 logger.error(f"Error: {str(e)}")
                 return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response, "error": str(e)})
         
-        with open("result_logs.json", "w") as f:
-            f.write(json.dumps(result_logs, indent=4))
+        # with open("result_logs.txt", "w") as f:
+        #     f.write(str(result_logs))
             # Return the existence check result
         return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response})
     except Exception as e:
