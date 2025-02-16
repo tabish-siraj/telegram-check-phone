@@ -41,6 +41,8 @@ PHONE_NUMBER = os.getenv("TELEGRAM_PHONE")
 if not all([API_ID, API_HASH, PHONE_NUMBER]):
     raise ValueError("Missing required environment variables. Please check your .env file.")
 
+print(f"API_ID: {API_ID}, PHONE_NUMBER: {PHONE_NUMBER}")
+
 client: TelegramClient = None
 
 @asynccontextmanager
@@ -171,13 +173,6 @@ async def check_account(request: Request, file: UploadFile = File(None)):
                             "exists": True,
                             "comment": "Found"
                         })
-                    # elif contact.client_id not in imported and contact.client_id in popular_invites:
-
-                    #     response.append({
-                    #         "phone": contact.phone,
-                    #         "exists": False,
-                    #         "comment": "Not found or has privacy ON."
-                    #     })
                     else:
                         response.append({
                             "phone": contact.phone,
@@ -206,14 +201,14 @@ async def process_phone_numbers(file: UploadFile):
         buffer = StringIO(file_bytes.decode('utf-8'))
         reader = csv.reader(buffer)
         next(reader)
-        counter = 1
+        counter = 0
         for row in reader:
             if row and row[0].strip():
                 numbers.append(InputPhoneContact(
                     client_id=counter,
                     phone=row[0].strip(),
-                    first_name=f"Check{counter}",
-                    last_name=f"User{counter}"
+                    first_name="",
+                    last_name=""
                 ))
                 counter += 1
                 if counter > 20:
