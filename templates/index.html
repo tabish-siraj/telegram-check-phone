@@ -73,6 +73,13 @@
           method="POST"
           enctype="multipart/form-data"
         >
+        <!-- <label for="text">Enter phone number to check:</label>
+          <input
+            type="text"
+            name="phone"
+            placeholder="Phone number to check"
+            required
+          /> -->
           <label for="file">Upload a CSV file with phone numbers</label>
           <input
             type="file"
@@ -99,7 +106,7 @@
       <tr>
         <td>{{ loop.index }}</td>
         <td>{{ resp.phone }}</td>
-        <td>{{ resp.exists }}</td>
+        <td>{{ resp.status }}</td>
         <td>{{ resp.comment }}</td>
       </tr>
       {% endfor %}

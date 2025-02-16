@@ -10,6 +10,7 @@ from telethon.tl.types import InputPhoneContact
 import os
 from dotenv import load_dotenv
 import csv
+import json
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 from io import StringIO
@@ -128,7 +129,8 @@ async def check_account(request: Request, phone: str = Form(...)):
             last_name="User"
         )
         result = await client(ImportContactsRequest([contact]))
-
+        # result = await client(SearchRequest(q=phone.strip(), limit=1))
+        print(result)
         exists = bool(result.users)
         if exists:
             response.append({
@@ -158,34 +160,40 @@ async def check_account(request: Request, file: UploadFile = File(None)):
         contacts = await process_phone_numbers(file)        
         response = []
         logger.info(f"Importing {len(contacts)} contacts...")
+        result_logs = []
 
         for i in range(0, len(contacts), 5):
             batch =  contacts[i:i+5]
-            await asyncio.sleep(1)
+            await asyncio.sleep(20)
             try:
                 result = await client(ImportContactsRequest(batch))
+                result_logs.append(result.to_dict())
                 phones = [user.phone for user in result.users]
 
                 for contact in batch:
                     if contact.phone.strip("+") in phones:
                         response.append({
                             "phone": contact.phone,
-                            "exists": True,
+                            "status": True,
                             "comment": "Found"
                         })
                     else:
                         response.append({
                             "phone": contact.phone,
-                            "exists": False,
+                            "status": False,
                             "comment": "error: No response, the phone number is not on Telegram or has blocked contact's adding."
                         })
-                # await client(DeleteContactsRequest(id=result.users))
-                await client(DeleteContactsRequest([user.id for user in result.users]))
-
+                await client(DeleteContactsRequest(id=result.users))
+                # await client(DeleteContactsRequest([user.id for user in result.users]))
+            except FloodWaitError as e:
+                logger.error(f"FloodWaitError: {str(e)}")
+                return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response, "error": str(e)})
             except Exception as e:
                 logger.error(f"Error: {str(e)}")
                 return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response, "error": str(e)})
-                
+        
+        with open("result_logs.json", "w") as f:
+            f.write(json.dumps(result_logs, indent=4))
             # Return the existence check result
         return templates.TemplateResponse("index.html", {"request": request, "is_authorized": True, "response": response})
     except Exception as e:
@@ -211,7 +219,7 @@ async def process_phone_numbers(file: UploadFile):
                     last_name=""
                 ))
                 counter += 1
-                if counter > 20:
+                if counter >= 50:
                     break
                 # numbers.append(str(row[0]).strip())
         file.file.close()
